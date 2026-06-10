@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>크로노타입 학습 효율 분석</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+    margin:0;
+    font-family:'Pretendard',sans-serif;
+    background:#eef5ea;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    padding:40px;
+}
+
+.card{
+    background:white;
+    border-radius:25px;
+    padding:30px;
+    box-shadow:0 8px 25px rgba(0,0,0,0.1);
+}
+
+h1{
+    text-align:center;
+    color:#4e6b4a;
+}
+
+.question{
+    margin:25px 0;
+}
+
+label{
+    display:block;
+    margin-bottom:8px;
+    font-weight:bold;
+    color:#4e6b4a;
+}
+
+select{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #cdddc5;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:15px;
+    background:#8fb996;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#769d7d;
+}
+
+.result{
+    margin-top:40px;
+    display:none;
+}
+
+.info{
+    background:#f5fbf3;
+    padding:20px;
+    border-radius:15px;
+    margin-top:20px;
+}
+
+canvas{
+    margin-top:30px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+
+<h1>🌿 크로노타입 학습 효율 분석</h1>
+
+<div class="question">
+<label>평소 기상 시간</label>
+<select id="wake">
+<option value="6">6시 이전</option>
+<option value="7">6~7시</option>
+<option value="8">7~8시</option>
+<option value="9">8시 이후</option>
+</select>
+</div>
+
+<div class="question">
+<label>평소 취침 시간</label>
+<select id="sleep">
+<option value="22">22시 이전</option>
+<option value="23">22~23시</option>
+<option value="24">23~24시</option>
+<option value="26">24시 이후</option>
+</select>
+</div>
+
+<div class="question">
+<label>가장 집중이 잘 되는 시간</label>
+<select id="focus">
+<option value="9">오전</option>
+<option value="14">오후</option>
+<option value="20">저녁</option>
+<option value="23">밤</option>
+</select>
+</div>
+
+<button onclick="analyze()">
+분석하기
+</button>
+
+<div class="result" id="result">
+
+<h2 id="type"></h2>
+
+<p id="study"></p>
+<p id="loss"></p>
+
+<canvas id="chart"></canvas>
+
+<div class="info">
+<h3>🧬 유전자 정보</h3>
+
+<p>
+사람의 아침형·저녁형 성향은 일부 유전자의 영향을 받는 것으로 알려져 있다.
+</p>
+
+<ul>
+<li><strong>CLOCK</strong> : 생체시계를 조절</li>
+<li><strong>PER1, PER2, PER3</strong> : 수면 주기 조절</li>
+<li><strong>CRY1</strong> : 저녁형 성향과 관련</li>
+<li><strong>BMAL1</strong> : CLOCK과 함께 생체리듬 형성</li>
+</ul>
+
+<p>
+하지만 생활습관과 환경 역시 크로노타입 형성에 중요한 영향을 준다.
+</p>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+
+let chart;
+
+function analyze(){
+
+const wake=parseInt(document.getElementById("wake").value);
+const sleep=parseInt(document.getElementById("sleep").value);
+const focus=parseInt(document.getElementById("focus").value);
+
+let type="";
+
+if(focus<=10){
+    type="🌅 아침형 인간";
+}
+else if(focus<=17){
+    type="☀️ 중간형 인간";
+}
+else{
+    type="🌙 저녁형 인간";
+}
+
+document.getElementById("type").innerHTML=
+"당신은 <strong>"+type+"</strong> 입니다.";
+
+let labels=[];
+let data=[];
+
+for(let t=0;t<24;t++){
+
+    const mesor=50;
+    const amplitude=40;
+
+    const efficiency=
+    mesor+
+    amplitude*Math.cos(
+    (2*Math.PI*(t-focus))/24
+    );
+
+    labels.push(t+"시");
+    data.push(Math.round(efficiency));
+}
+
+let bestHour=0;
+let maxEfficiency=0;
+
+for(let i=0;i<data.length;i++){
+    if(data[i]>maxEfficiency){
+        maxEfficiency=data[i];
+        bestHour=i;
+    }
+}
+
+document.getElementById("study").innerHTML=
+"📚 예상 최적 공부 시간은 <strong>"+bestHour+"시</strong>이며, 학습 효율은 약 <strong>"+maxEfficiency+"%</strong>입니다.";
+
+const afternoon=data[15];
+
+const lossRate=
+Math.round(
+((maxEfficiency-afternoon)/maxEfficiency)*100
+);
+
+document.getElementById("loss").innerHTML=
+"📉 최적 시간 대신 오후 3시에 공부할 경우 약 <strong>"+lossRate+"%</strong>의 효율 손실이 예상됩니다.";
+
+document.getElementById("result").style.display="block";
+
+const ctx=document.getElementById("chart");
+
+if(chart){
+    chart.destroy();
+}
+
+chart=new Chart(ctx,{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:'학습 효율 (%)',
+data:data,
+tension:0.4
+}]
+},
+options:{
+responsive:true,
+plugins:{
+title:{
+display:true,
+text:'코시노 모델 기반 학습 효율 곡선'
+}
+},
+scales:{
+y:{
+min:0,
+max:100
+}
+}
+}
+});
+
+}
+
+</script>
+
+</body>
+</html>
